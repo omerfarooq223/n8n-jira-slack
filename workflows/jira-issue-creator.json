@@ -1,0 +1,172 @@
+{
+  "name": "Jira Issue Creator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jira-create",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "23811590-0136-4299-a65e-5a369155d7e5",
+      "name": "Webhook",
+      "webhookId": "73ed5580-a71e-42e3-a994-1a4795171246"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"minimax/minimax-m2.5\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Extract issue details from the text and respond ONLY with JSON in this exact format: {\\\"issueType\\\": \\\"Bug or Story or Task\\\", \\\"summary\\\": \\\"brief issue title\\\", \\\"description\\\": \\\"detailed description\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ $json.body.text }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "870ddd43-f526-4873-bf8b-db7a8378e7a0",
+      "name": "OpenRouter AI",
+      "credentials": {
+        "openRouterApi": {
+          "id": "wrbVdIHl6qDXHiDA",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.choices[0].message.content;\nconst clean = raw.replace(/```json|```/g, '').trim();\nconst parsed = JSON.parse(clean);\n\nconst issueTypeMap = {\n  'bug': 'Bug',\n  'story': 'Story', \n  'task': 'Task'\n};\n\nconst issueType = issueTypeMap[parsed.issueType.toLowerCase()] || 'Task';\n\nreturn [{\n  json: {\n    issueType,\n    summary: parsed.summary,\n    description: parsed.description\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "c6053fcf-1b1b-45ba-8957-362911b8d19c",
+      "name": "Parse AI Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://omerfarooq-dev.atlassian.net/rest/api/3/issue",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"project\": {\n      \"key\": \"JAN\"\n    },\n    \"summary\": \"={{ $json.summary }}\",\n    \"description\": {\n      \"type\": \"doc\",\n      \"version\": 1,\n      \"content\": [\n        {\n          \"type\": \"paragraph\",\n          \"content\": [\n            {\n              \"type\": \"text\",\n              \"text\": \"={{ $json.description }}\"\n            }\n          ]\n        }\n      ]\n    },\n    \"issuetype\": {\n      \"name\": \"Task\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "a10cbd34-ffe2-4d92-b6b1-732a3c502369",
+      "name": "Create Jira Issue",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "ZfR1Rb3VfPNAsRdt",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AHNRA054J",
+          "mode": "id"
+        },
+        "text": "=={{ '✅ New ' + $('Parse AI Response').item.json.issueType + ' created: ' + $json.key + ' - ' + $('Parse AI Response').item.json.summary }}` |",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "8e66a384-e992-45a3-9c50-e3b151f0657a",
+      "name": "Notify",
+      "webhookId": "71eb146b-c89b-4c88-834e-62ac2fe3098a",
+      "credentials": {
+        "slackApi": {
+          "id": "rYJR8olSxQlG0Vna",
+          "name": "Slack account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter AI": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Create Jira Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Jira Issue": {
+      "main": [
+        [
+          {
+            "node": "Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "04cebba0-e003-4f22-844b-a18832879a11",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b8e40bf5deae16f54291e158ce45e46f26103e0aa984221bc27ce19388c7321"
+  },
+  "id": "EaGNtkdQuMrOT-UDpXwGh",
+  "tags": []
+}

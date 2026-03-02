@@ -1,0 +1,131 @@
+{
+  "name": "Sprint Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sprint-summary",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "050ce8c6-cc3e-44e4-89e5-8944f45c6a3f",
+      "name": "Webhook",
+      "webhookId": "f4aeb6b2-2512-4a40-b66b-fe3ccbfcd0ae"
+    },
+    {
+      "parameters": {
+        "url": "https://omerfarooq-dev.atlassian.net/rest/api/3/search/jql?jql=project=JAN&maxResults=100&fields=summary,status,assignee",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "683a50d8-34d8-4676-b49d-de179005998f",
+      "name": "Get Jira Issues",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "ZfR1Rb3VfPNAsRdt",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fullResponse = $input.item.json;\nconst issues = fullResponse.issues || [];\n\nconst statusCount = {};\n\nissues.forEach(issue => {\n  const status = issue.fields?.status?.name;\n  if (status) {\n    statusCount[status] = (statusCount[status] || 0) + 1;\n  }\n});\n\nconst total = issues.length;\nconst done = statusCount['Done'] || 0;\nconst completion = total > 0 ? Math.round((done / total) * 100) : 0;\nconst filled = Math.round(completion / 5);\nconst empty = 20 - filled;\nconst progressBar = '█'.repeat(filled) + '░'.repeat(empty);\nconst statusLines = Object.entries(statusCount)\n  .map(([status, count]) => `• ${status}: ${count}`)\n  .join('\\n') || '• No statuses found';\n\nconst message = `📊 *Board Summary (JAN)*\n\n━━━━━━━━━━━━━━━━━━━━\n\n📈 Completion: ${completion}%\n\\`${progressBar}\\`\n\n📊 *Status Breakdown*\n${statusLines}\n- Total Issues: ${total}\n\n━━━━━━━━━━━━━━━━━━━━`;\n\nreturn [{ json: { message, completion, statusCount, total } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "35177461-58d4-4fb1-8b40-b3909c8a466b",
+      "name": "Build Summary"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AHNRA054J",
+          "mode": "id"
+        },
+        "text": "=={{ $json.message }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "d0031467-09a7-4519-b74a-089cc5fb16b7",
+      "name": "Send a message",
+      "webhookId": "041ee9bc-dbbf-4108-8ef6-4f0251509358",
+      "credentials": {
+        "slackApi": {
+          "id": "rYJR8olSxQlG0Vna",
+          "name": "Slack account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Jira Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Jira Issues": {
+      "main": [
+        [
+          {
+            "node": "Build Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "8b68d01e-6c0a-4dd1-8e44-18fe77649521",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b8e40bf5deae16f54291e158ce45e46f26103e0aa984221bc27ce19388c7321"
+  },
+  "id": "4l82s__0vHKpkxRh4qlXU",
+  "tags": []
+}

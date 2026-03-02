@@ -1,0 +1,223 @@
+{
+  "name": "Jira Status Updater",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "update-status",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        64,
+        0
+      ],
+      "id": "98bdf350-e214-47e9-ae66-f0570a21a7e0",
+      "name": "Webhook",
+      "webhookId": "e088166f-f1c1-4dc5-a421-0cf296c2a8f9"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body;\nconst text = body.text || '';\nconst userId = body.user_id || '';\nconst responseUrl = body.response_url || '';\n\n// Extract issue key and status from command\n// e.g. \"Move JAN-5 to In Progress\"\nconst issueMatch = text.match(/([A-Z]+-\\d+)/i);\nconst issueKey = issueMatch ? issueMatch[1].toUpperCase() : null;\n\n// Extract status after \"to\" or \"as\"\nconst statusMatch = text.match(/(?:to|as)\\s+(.+)/i);\nconst requestedStatus = statusMatch ? statusMatch[1].trim() : null;\n\nif (!issueKey || !requestedStatus) {\n  return [{\n    json: {\n      error: true,\n      message: `Invalid command format. Try: /jira-update Move JAN-5 to In Progress`,\n      userId,\n      responseUrl\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    error: false,\n    issueKey,\n    requestedStatus,\n    userId,\n    responseUrl\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        0
+      ],
+      "id": "abecafe8-421a-4ab4-bd49-cd34449aa6f5",
+      "name": "Parse Slack Command"
+    },
+    {
+      "parameters": {
+        "url": "=https://omerfarooq-dev.atlassian.net/rest/api/3/issue/{{ $json.issueKey }}/transitions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        720,
+        0
+      ],
+      "id": "af785e33-70eb-49da-94c7-dbdb4cf01b28",
+      "name": "Get Jira Transitions",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "ZfR1Rb3VfPNAsRdt",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const transitions = $input.item.json.transitions;\nconst requestedStatus = $('Parse Slack Command').item.json.requestedStatus.toLowerCase();\nconst issueKey = $('Parse Slack Command').item.json.issueKey;\nconst responseUrl = $('Parse Slack Command').item.json.responseUrl;\n\n// Map common phrases to status names\nconst statusMap = {\n  'todo': 'To Do',\n  'to do': 'To Do',\n  'start': 'In Progress',\n  'in progress': 'In Progress',\n  'review': 'In Review',\n  'in review': 'In Review',\n  'done': 'Done',\n  'close': 'Done',\n  'closed': 'Done',\n  'finish': 'Done',\n  'complete': 'Done'\n};\n\nconst mappedStatus = statusMap[requestedStatus] || requestedStatus;\n\n// Find matching transition\nconst transition = transitions.find(t => \n  t.name.toLowerCase() === mappedStatus.toLowerCase()\n);\n\nif (!transition) {\n  return [{\n    json: {\n      error: true,\n      message: `Status \"${requestedStatus}\" not found. Available: ${transitions.map(t => t.name).join(', ')}`,\n      responseUrl\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    error: false,\n    issueKey,\n    transitionId: transition.id,\n    transitionName: transition.name,\n    responseUrl\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        0
+      ],
+      "id": "d0d5d10f-7330-48be-a5b6-c2a4a04f8256",
+      "name": "Match Transition"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://omerfarooq-dev.atlassian.net/rest/api/3/issue/{{ $json.issueKey }}/transitions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"transition\": {\n    \"id\": {{ $json.transitionId }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1168,
+        0
+      ],
+      "id": "5fb6db86-606e-4b3e-ad75-b12ea9c8f699",
+      "name": "Update Jira Status",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "ZfR1Rb3VfPNAsRdt",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "=C0AGAFZ5B8W",
+          "mode": "id"
+        },
+        "text": "=",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1392,
+        0
+      ],
+      "id": "6aa8950a-cafa-4f0f-83ec-b0727506fc54",
+      "name": "Send Feedback",
+      "webhookId": "41c442aa-82d4-46bd-b310-7018e7291861",
+      "credentials": {
+        "slackApi": {
+          "id": "aEHfGCxsGWIppfUv",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "⏳ Working on it...",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        272,
+        0
+      ],
+      "id": "02c6e098-5bd7-4f59-93ca-098f2a3b4a57",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Slack Command": {
+      "main": [
+        [
+          {
+            "node": "Get Jira Transitions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Jira Transitions": {
+      "main": [
+        [
+          {
+            "node": "Match Transition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Transition": {
+      "main": [
+        [
+          {
+            "node": "Update Jira Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Jira Status": {
+      "main": [
+        [
+          {
+            "node": "Send Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Feedback": {
+      "main": [
+        []
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Slack Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "dc774236-12a4-4fed-9f35-4a621b81e9e7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b8e40bf5deae16f54291e158ce45e46f26103e0aa984221bc27ce19388c7321"
+  },
+  "id": "lpEmf0nsuwlfHlSH_-11g",
+  "tags": []
+}
