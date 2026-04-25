@@ -1,0 +1,28 @@
+name: Validate Workflows
+
+on:
+  pull_request:
+    paths:
+      - "workflows/**/*.json"
+      - "scripts/validate-workflows.sh"
+      - ".github/workflows/validate-workflows.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "workflows/**/*.json"
+      - "scripts/validate-workflows.sh"
+      - ".github/workflows/validate-workflows.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq ripgrep
+
+      - name: Validate n8n workflows
+        run: bash scripts/validate-workflows.sh

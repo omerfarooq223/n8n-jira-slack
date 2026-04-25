@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "url": "https://omerfarooq-dev.atlassian.net/rest/api/3/search/jql?jql=project=JAN&maxResults=100&fields=summary,status,assignee",
+        "url": "={{ $env.JIRA_BASE_URL + '/rest/api/3/search/jql?jql=project=' + ($env.JIRA_PROJECT_KEY || 'JAN') + '&maxResults=100&fields=summary,status,assignee' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "options": {}
@@ -57,10 +57,10 @@
         "select": "channel",
         "channelId": {
           "__rl": true,
-          "value": "C0AHNRA054J",
+          "value": "={{ $env.SLACK_DEFAULT_CHANNEL_ID }}",
           "mode": "id"
         },
-        "text": "=={{ $json.message }}",
+        "text": "={{ $json.message }}",
         "otherOptions": {}
       },
       "type": "n8n-nodes-base.slack",

@@ -59,12 +59,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://omerfarooq-dev.atlassian.net/rest/api/3/issue",
+        "url": "={{ $env.JIRA_BASE_URL + '/rest/api/3/issue' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"fields\": {\n    \"project\": {\n      \"key\": \"JAN\"\n    },\n    \"summary\": \"={{ $json.summary }}\",\n    \"description\": {\n      \"type\": \"doc\",\n      \"version\": 1,\n      \"content\": [\n        {\n          \"type\": \"paragraph\",\n          \"content\": [\n            {\n              \"type\": \"text\",\n              \"text\": \"={{ $json.description }}\"\n            }\n          ]\n        }\n      ]\n    },\n    \"issuetype\": {\n      \"name\": \"Task\"\n    }\n  }\n}",
+        "jsonBody": "={\n  \"fields\": {\n    \"project\": {\n      \"key\": \"={{ $env.JIRA_PROJECT_KEY || 'JAN' }}\"\n    },\n    \"summary\": \"={{ $json.summary }}\",\n    \"description\": {\n      \"type\": \"doc\",\n      \"version\": 1,\n      \"content\": [\n        {\n          \"type\": \"paragraph\",\n          \"content\": [\n            {\n              \"type\": \"text\",\n              \"text\": \"={{ $json.description }}\"\n            }\n          ]\n        }\n      ]\n    },\n    \"issuetype\": {\n      \"name\": \"={{ $json.issueType || 'Task' }}\"\n    }\n  }\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -87,10 +87,10 @@
         "select": "channel",
         "channelId": {
           "__rl": true,
-          "value": "C0AHNRA054J",
+          "value": "={{ $env.SLACK_DEFAULT_CHANNEL_ID }}",
           "mode": "id"
         },
-        "text": "=={{ '✅ New ' + $('Parse AI Response').item.json.issueType + ' created: ' + $json.key + ' - ' + $('Parse AI Response').item.json.summary }}` |",
+        "text": "={{ '✅ New ' + $('Parse AI Response').item.json.issueType + ' created: ' + $json.key + ' - ' + $('Parse AI Response').item.json.summary }}",
         "otherOptions": {}
       },
       "type": "n8n-nodes-base.slack",

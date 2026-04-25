@@ -32,7 +32,7 @@
     },
     {
       "parameters": {
-        "url": "=https://omerfarooq-dev.atlassian.net/rest/api/3/issue/{{ $json.issueKey }}/transitions",
+        "url": "={{ $env.JIRA_BASE_URL + '/rest/api/3/issue/' + $json.issueKey + '/transitions' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "options": {}
@@ -68,7 +68,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://omerfarooq-dev.atlassian.net/rest/api/3/issue/{{ $json.issueKey }}/transitions",
+        "url": "={{ $env.JIRA_BASE_URL + '/rest/api/3/issue/' + $json.issueKey + '/transitions' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,
@@ -96,10 +96,10 @@
         "select": "channel",
         "channelId": {
           "__rl": true,
-          "value": "=C0AGAFZ5B8W",
+          "value": "={{ $env.SLACK_DEFAULT_CHANNEL_ID }}",
           "mode": "id"
         },
-        "text": "=",
+        "text": "={{ '✅ ' + $('Match Transition').item.json.issueKey + ' moved to ' + $('Match Transition').item.json.transitionName }}",
         "otherOptions": {}
       },
       "type": "n8n-nodes-base.slack",
