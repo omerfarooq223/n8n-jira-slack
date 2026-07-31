@@ -76,3 +76,5 @@ Before enabling in production, verify:
 - [Jira Cloud API](https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/)
 - [Slack API](https://api.slack.com/)
 - [OpenRouter](https://openrouter.ai)
+
+Author: Muhammad Umar Farooq
